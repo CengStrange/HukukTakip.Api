@@ -4,6 +4,7 @@ using HukukTakip.Api.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HukukTakip.Api.Migrations
 {
     [DbContext(typeof(AppDb))]
-    partial class AppDbModelSnapshot : ModelSnapshot
+    [Migration("20251027113029_UpdateMusteriler1")]
+    partial class UpdateMusteriler1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -313,6 +316,10 @@ namespace HukukTakip.Api.Migrations
                     b.Property<DateOnly?>("DogumTarihi")
                         .HasColumnType("date");
 
+                    b.Property<string>("DogumYeri")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("HayattaMi")
                         .HasColumnType("bit");
 
@@ -333,8 +340,11 @@ namespace HukukTakip.Api.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("NufusaKayitliOlduguIl")
+                    b.Property<string>("NufusaKayitliOlduguIl")
                         .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OlusturanUserId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("OlusturmaTarihiUtc")

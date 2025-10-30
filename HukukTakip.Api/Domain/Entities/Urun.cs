@@ -7,7 +7,7 @@ public class Urun
 {
     public Guid Id { get; set; }
 
-    // İlişkiler
+
     public Guid MusteriId { get; set; }
     public Musteri Musteri { get; set; } = null!;
 

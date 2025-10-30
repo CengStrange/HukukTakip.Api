@@ -15,7 +15,6 @@ public class IhtarController : ControllerBase
     private readonly AppDb _db;
     public IhtarController(AppDb db) => _db = db;
 
-    // Listeleme + arama (yevmiyeNo / ihtarNo / musteriAd)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<IhtarListItemDto>>> List([FromQuery] string? q, [FromQuery] int take = 50)
     {
@@ -36,10 +35,10 @@ public class IhtarController : ControllerBase
 
         var list = await query
             .Take(Math.Clamp(take, 1, 200))
-            .Select(x => new IhtarListItemDto(  
+            .Select(x => new IhtarListItemDto(
                 x.Id, x.MusteriId, x.Musteri.AdiUnvani ?? string.Empty,
                 x.NoterAdi, x.YevmiyeNo, x.IhtarTarihi, x.IhtarNo,
-                x.IhtarnameNakitTutar, x.IhtarnameGayriNakitTutar  ))
+                x.IhtarnameNakitTutar, x.IhtarnameGayriNakitTutar))
             .ToListAsync();
 
         return Ok(list);
@@ -52,10 +51,30 @@ public class IhtarController : ControllerBase
         return e is null ? NotFound() : Ok(e);
     }
 
+    [HttpGet("musteri-ihtarlari")]
+    public async Task<ActionResult> GetMusteriIhtarlari([FromQuery] Guid musteriId, CancellationToken ct)
+    {
+        if (musteriId == Guid.Empty) return BadRequest("MusteriId gereklidir.");
+
+        var ihtarlar = await _db.Ihtarlar
+            .Where(i => i.MusteriId == musteriId)
+            .OrderByDescending(i => i.IhtarTarihi)
+            .Select(i => new {
+             
+                id = i.Id,
+                ihtarNo = i.IhtarNo,
+                yevmiyeNo = i.YevmiyeNo,
+                ihtarTarihi = i.IhtarTarihi,
+                musteriUrunId = i.MusteriUrunleri 
+            })
+            .ToListAsync(ct);
+
+        return Ok(ihtarlar);
+    }
+
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] IhtarCreateDto dto)
     {
-        // Basit doğrulamalar
         if (dto.MusteriId == Guid.Empty) return BadRequest("MusteriId zorunlu.");
         if (dto.IhtarnameNakitTutar < 0 || dto.IhtarnameGayriNakitTutar < 0)
             return BadRequest("Tutarlar negatif olamaz.");
@@ -67,7 +86,6 @@ public class IhtarController : ControllerBase
             return BadRequest("Kat tarihi tebliğ tarihinden sonra olamaz.");
         ;
 
-        // Unique kontrolleri
         if (!string.IsNullOrWhiteSpace(dto.YevmiyeNo) && !string.IsNullOrWhiteSpace(dto.NoterAdi))
         {
             var existsY = await _db.Ihtarlar.AnyAsync(x =>
@@ -114,9 +132,8 @@ public class IhtarController : ControllerBase
         if (dto.IhtarTebligGirisTarihi is { } t2 && dto.TebligTarihi is { } tt && t2 < tt)
             return BadRequest("İhtar tebliğ giriş tarihi tebliğ tarihinden önce olamaz.");
         if (dto.KatTarihi is { } kt && dto.TebligTarihi is { } tt2 && kt > tt2)
-    return BadRequest("Kat tarihi tebliğ tarihinden sonra olamaz.");
+            return BadRequest("Kat tarihi tebliğ tarihinden sonra olamaz.");
 
-        // Unique kontrolleri (kendi kaydı hariç)
         if (!string.IsNullOrWhiteSpace(dto.YevmiyeNo) && !string.IsNullOrWhiteSpace(dto.NoterAdi))
         {
             var existsY = await _db.Ihtarlar.AnyAsync(x =>
@@ -153,3 +170,4 @@ public class IhtarController : ControllerBase
         return NoContent();
     }
 }
+

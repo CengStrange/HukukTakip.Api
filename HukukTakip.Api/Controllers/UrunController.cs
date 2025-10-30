@@ -15,10 +15,13 @@ public class UrunlerController : ControllerBase
     private readonly AppDb _db;
     public UrunlerController(AppDb db) => _db = db;
 
+
+
     [HttpGet]
     public async Task<ActionResult> List(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? musteriId = null,
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
@@ -26,10 +29,16 @@ public class UrunlerController : ControllerBase
 
         var query = _db.Urunler.AsNoTracking();
 
+
+        if (musteriId.HasValue)
+        {
+            query = query.Where(u => u.MusteriId == musteriId.Value);
+        }
+
         var total = await query.CountAsync(ct);
 
         var items = await query
-            .Include(u => u.Musteri) // MusteriAdiUnvani için Musteri tablosunu join et
+            .Include(u => u.Musteri)
             .OrderByDescending(x => x.OlusturmaTarihiUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -39,12 +48,47 @@ public class UrunlerController : ControllerBase
                 u.Musteri.AdiUnvani ?? "",
                 u.UrunTipi,
                 u.TakipMiktari,
-                u.TakipTarihi
+                u.DovizTipi
             ))
             .ToListAsync(ct);
 
         return Ok(new { total, items });
     }
+
+    // ---------- YENİ EKLENEN ENDPOINT (BİR SONRAKİ 404 HATASINI ÖNLEYECEK) ----------
+    [HttpGet("ihtarli-urunler")]
+    public async Task<ActionResult> GetIhtarliUrunler([FromQuery] Guid musteriId, CancellationToken ct)
+    {
+        // 1. Bu müşteriye ait ihtarlardaki ürün ID'lerini (string) al
+        var ihtarliUrunIdStrings = await _db.Ihtarlar
+            .Where(i => i.MusteriId == musteriId && i.MusteriUrunleri != null)
+            .Select(i => i.MusteriUrunleri)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // 2. String ID'leri Guid'e çevir
+        var urunGuidList = ihtarliUrunIdStrings
+            .Select(idStr => Guid.TryParse(idStr, out var guid) ? guid : Guid.Empty)
+            .Where(g => g != Guid.Empty)
+            .ToList();
+
+        // 3. Urunler tablosundan bu ID'lere sahip ürünlerin detaylarını getir
+        // (Frontend'deki TS UrunListDto arayüzüyle eşleşen anonim bir tip kullanıyoruz)
+        var urunler = await _db.Urunler
+            .Include(u => u.Musteri) // musteriAdiUnvani için
+            .Where(u => urunGuidList.Contains(u.Id))
+            .Select(u => new {
+                id = u.Id.ToString(), // Frontend UrunListDto 'id: string' bekliyor
+                urunTipi = u.UrunTipi,
+                musteriAdiUnvani = u.Musteri.AdiUnvani ?? "",
+                takipMiktari = u.TakipMiktari,
+                dovizTipi = u.DovizTipi
+            })
+            .ToListAsync(ct);
+
+        return Ok(urunler);
+    }
+    // ---------- BİTTİ ----------
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<UrunDetailDto>> Get(Guid id, CancellationToken ct)
@@ -105,6 +149,7 @@ public class UrunlerController : ControllerBase
         _db.Urunler.Add(urun);
         await _db.SaveChangesAsync(ct);
 
+        // ----- HATA DÜZELTMESİ BURADA (e.Id -> urun.Id) -----
         return CreatedAtAction(nameof(Get), new { id = urun.Id }, new { urun.Id });
     }
 
@@ -114,7 +159,6 @@ public class UrunlerController : ControllerBase
         var urun = await _db.Urunler.FindAsync(new object[] { id }, ct);
         if (urun is null) return NotFound();
 
-        // Map DTO to entity
         urun.MusteriId = dto.MusteriId;
         urun.AvukatId = dto.AvukatId;
         urun.KrediBirimKoduSubeId = dto.KrediBirimKoduSubeId;
@@ -147,3 +191,4 @@ public class UrunlerController : ControllerBase
         return NoContent();
     }
 }
+

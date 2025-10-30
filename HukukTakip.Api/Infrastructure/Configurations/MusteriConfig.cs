@@ -18,7 +18,6 @@ public class MusteriConfig : IEntityTypeConfiguration<Musteri>
 
         b.Property(x => x.TCKN).HasMaxLength(11).IsFixedLength();
         b.HasIndex(x => x.TCKN).IsUnique();
-        b.Property(x => x.DogumYeri).HasMaxLength(100);
         b.Property(x => x.BabaAdi).HasMaxLength(100);
         b.Property(x => x.AnneAdi).HasMaxLength(100);
 
@@ -32,7 +31,6 @@ public class MusteriConfig : IEntityTypeConfiguration<Musteri>
         b.Property(x => x.SSKNo).HasMaxLength(30);
         b.Property(x => x.SSKIsyeriNumarasi).HasMaxLength(30);
         b.Property(x => x.TicaretSicilNo).HasMaxLength(30);
-        b.Property(x => x.BorcuTipi).HasMaxLength(50);
 
         b.HasIndex(x => x.MusteriNo).IsUnique();
         b.HasIndex(x => x.TCKN).IsUnique().HasFilter("[TCKN] IS NOT NULL");

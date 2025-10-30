@@ -22,7 +22,7 @@ namespace HukukTakip.Api.Controllers
             _token = token;
         }
 
-        /// <summary>Giriş ve JWT üretimi</summary>
+  
         [HttpPost("login")]
         [AllowAnonymous]
         [SwaggerOperation(Summary = "Kullanıcı girişi", Description = "Email + şifre ile JWT döner.")]

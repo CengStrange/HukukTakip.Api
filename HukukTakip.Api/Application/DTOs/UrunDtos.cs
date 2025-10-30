@@ -8,7 +8,7 @@ public record UrunListDto(
     string MusteriAdiUnvani,
     UrunTipi UrunTipi,
     decimal TakipMiktari,
-    DateOnly? TakipTarihi
+    string? DovizTipi
 );
 
 public record UrunDetailDto(
